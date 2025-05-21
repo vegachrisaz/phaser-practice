@@ -10,6 +10,9 @@ const config = {
   type: Phaser.WEBGL,
   width: gameWidth,
   height: gameHeight,
+  input: {
+    gamepad: true,
+  },
   physics: {
     default: "arcade",
     arcade: {
@@ -44,6 +47,14 @@ let cursors;
 let score = 0;
 let scoreText;
 let gameOver;
+
+let gamepad = scene.input.gamepad.getPad(0);
+// var gamepad = scene.input.gamepad.getPad(index);
+
+let isLeftDown = gamepad.left;
+let isRightDown = gamepad.right;
+let isUpDown = gamepad.up;
+let isDownDown = gamepad.down;
 
 function create() {
   this.add.image(xCenter, yCenter, "sky");
@@ -142,6 +153,26 @@ function create() {
 }
 
 function update() {
+  if (isLeftDown) {
+    player.setVelocityX(-160);
+    player.anims.play("left", true);
+  } else if (isRightDown) {
+    player.setVelocityX(160);
+    player.anims.play("right", true);
+  } else {
+    player.setVelocityX(0);
+    player.anims.play("turn");
+  }
+
+  if (isLeftDown && isRightDown) {
+    player.setVelocityX(0);
+    player.anims.play("turn");
+  }
+
+  if (isDownDown && player.body.touching.down) {
+    player.setVelocityY(-470);
+  }
+
   if (cursors.left.isDown) {
     player.setVelocityX(-160);
     player.anims.play("left", true);
