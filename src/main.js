@@ -6,15 +6,10 @@ let gameHeight = 600;
 let xCenter = gameWidth / 2;
 let yCenter = gameHeight / 2;
 
-let pad = null;
-
 const config = {
   type: Phaser.WEBGL,
   width: gameWidth,
   height: gameHeight,
-  input: {
-    gamepad: true,
-  },
   physics: {
     default: "arcade",
     arcade: {
@@ -22,6 +17,7 @@ const config = {
       debug: false,
     },
   },
+  canvas: gameCanvas,
   backgroundColor: "#1d1d1d",
   scene: {
     preload,
@@ -31,12 +27,6 @@ const config = {
 };
 
 const game = new Phaser.Game(config);
-
-let player, platforms, stars, bombs;
-let cursors;
-let score = 0;
-let scoreText;
-let gameOver = false;
 
 function preload() {
   this.load.image("sky", "/images/sky.png");
@@ -49,16 +39,27 @@ function preload() {
   });
 }
 
+let player, platforms, stars, bombs;
+let cursors;
+let score = 0;
+let scoreText;
+let gameOver;
+
 function create() {
   this.add.image(xCenter, yCenter, "sky");
 
   platforms = this.physics.add.staticGroup();
+
   platforms.create(400, 568, "ground").setScale(2).refreshBody();
+
   platforms.create(600, 400, "ground");
   platforms.create(50, 250, "ground");
   platforms.create(750, 220, "ground");
 
   player = this.physics.add.sprite(100, 450, "dude");
+
+  player.body.setGravityY(300);
+
   player.setBounce(0.2);
   player.setCollideWorldBounds(true);
 
@@ -99,23 +100,9 @@ function create() {
   this.physics.add.collider(stars, platforms);
   this.physics.add.overlap(player, stars, collectStar, null, this);
 
-  scoreText = this.add.text(16, 16, "Score: 0", {
-    fontSize: "32px",
-    fill: "#000",
-  });
-
-  bombs = this.physics.add.group();
-  this.physics.add.collider(bombs, platforms);
-  this.physics.add.collider(player, bombs, hitBomb, null, this);
-
-  // Gamepad setup
-  this.input.gamepad.once("connected", function (connectedPad) {
-    pad = connectedPad;
-    console.log("Gamepad connected:", pad.id);
-  });
-
   function collectStar(player, star) {
     star.disableBody(true, true);
+
     score += 10;
     scoreText.setText(`Score: ${score}`);
 
@@ -123,20 +110,31 @@ function create() {
       stars.children.iterate((child) => {
         child.enableBody(true, child.x, 0, true, true);
       });
-
       let x =
         player.x < 400
           ? Phaser.Math.Between(400, 800)
           : Phaser.Math.Between(0, 400);
       let bomb = bombs.create(x, 16, "bomb");
+
       bomb.setBounce(1);
       bomb.setCollideWorldBounds(true);
       bomb.setVelocity(Phaser.Math.Between(-200, 200), 20);
     }
   }
 
+  scoreText = this.add.text(16, 16, "Score: 0", {
+    fontSize: "32px",
+    fill: "#000",
+  });
+
+  bombs = this.physics.add.group();
+
+  this.physics.add.collider(bombs, platforms);
+  this.physics.add.collider(player, bombs, hitBomb, null, this);
+
   function hitBomb(player, bomb) {
     this.physics.pause();
+
     player.setTint(0xff0000);
     player.anims.play("turn");
     gameOver = true;
@@ -144,48 +142,23 @@ function create() {
 }
 
 function update() {
-  if (gameOver) return;
-
-  let velocityX = 0;
-  let jump = false;
-
-  // Keyboard controls
   if (cursors.left.isDown) {
-    velocityX = -160;
+    player.setVelocityX(-160);
     player.anims.play("left", true);
   } else if (cursors.right.isDown) {
-    velocityX = 160;
+    player.setVelocityX(160);
     player.anims.play("right", true);
-  }
-
-  if (cursors.up.isDown && player.body.touching.down) {
-    jump = true;
-  }
-
-  // Gamepad controls
-  if (pad) {
-    const axisH = pad.axes.length > 0 ? pad.axes[0].getValue() : 0;
-
-    if (axisH < -0.1) {
-      velocityX = -160;
-      player.anims.play("left", true);
-    } else if (axisH > 0.1) {
-      velocityX = 160;
-      player.anims.play("right", true);
-    }
-
-    if (pad.buttons[0].pressed && player.body.touching.down) {
-      jump = true;
-    }
-  }
-
-  player.setVelocityX(velocityX);
-
-  if (velocityX === 0 && player.body.touching.down) {
+  } else {
+    player.setVelocityX(0);
     player.anims.play("turn");
   }
 
-  if (jump) {
+  if (cursors.left.isDown && cursors.right.isDown) {
+    player.setVelocityX(0);
+    player.anims.play("turn");
+  }
+
+  if (cursors.up.isDown && player.body.touching.down) {
     player.setVelocityY(-470);
   }
 }
