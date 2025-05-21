@@ -1,0 +1,13 @@
+:root {
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+}
+
+#gameCanvas {
+  border: 1px solid black;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  z-index: 1;
+}
